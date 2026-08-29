@@ -1,0 +1,441 @@
+<title>Supreme × Analogue Pocket — Market Tracker</title>
+<style>
+  :root{
+    --red:#E01B22; --red-deep:#8E1015;
+    --stock:#F4F2ED; --stock-sink:#E9E5DC;
+    --ink:#14110F; --ink-soft:#6B6560; --rule:#D8D4CC;
+    --gain:#0F7B4F; --loss:#A8121A; --gold:#9C7112;
+    --display:'Archivo Black','Arial Black',Impact,'Helvetica Neue',sans-serif;
+    --body:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    --data:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--red);
+    background-image:
+      radial-gradient(ellipse at 18% -5%, rgba(255,255,255,.11), transparent 55%),
+      radial-gradient(ellipse at 92% 105%, rgba(0,0,0,.22), transparent 52%);
+    background-attachment:fixed;
+    font-family:var(--body); color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding:26px 15px 60px;
+  }
+  .stack{max-width:660px;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
+
+  .label{
+    background:var(--stock); border-radius:10px; padding:20px;
+    box-shadow:0 1px 0 rgba(255,255,255,.4) inset, 0 7px 20px rgba(0,0,0,.26);
+    position:relative;
+  }
+  .label::after{content:"";position:absolute;inset:0;border-radius:10px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.07) inset;pointer-events:none;}
+
+  .brandline{
+    font-family:var(--display);
+    font-size:clamp(25px,6.8vw,36px); line-height:.95; letter-spacing:-.02em;
+    text-transform:uppercase; transform:skewX(-9deg); transform-origin:left bottom;
+    margin:0 0 14px; text-wrap:balance;
+  }
+  .brandline em{font-style:normal;color:var(--red);}
+
+  .barcode{height:38px;width:100%;margin:0 0 11px;background-repeat:repeat-x;
+    background-size:66px 100%;
+    background-image:repeating-linear-gradient(90deg,
+      var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 10px,
+      var(--ink) 10px 13px, transparent 13px 14px, var(--ink) 14px 15px, transparent 15px 19px,
+      var(--ink) 19px 22px, transparent 22px 25px, var(--ink) 25px 26px, transparent 26px 30px,
+      var(--ink) 30px 33px, transparent 33px 34px, var(--ink) 34px 36px, transparent 36px 40px,
+      var(--ink) 40px 41px, transparent 41px 45px, var(--ink) 45px 48px, transparent 48px 50px,
+      var(--ink) 50px 51px, transparent 51px 55px, var(--ink) 55px 58px, transparent 58px 59px,
+      var(--ink) 59px 61px, transparent 61px 66px);}
+
+  .meta{font-family:var(--data);font-size:11px;letter-spacing:.03em;color:var(--ink-soft);
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .meta strong{color:var(--ink);font-weight:700;}
+
+  /* filter */
+  .filterbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .filterbar h3{font-family:var(--data);font-size:10px;font-weight:400;
+    text-transform:uppercase;letter-spacing:.13em;color:var(--ink-soft);margin:0;}
+  .seg{display:flex;border:1px solid var(--rule);border-radius:7px;overflow:hidden;}
+  .seg button{
+    appearance:none;border:0;background:transparent;cursor:pointer;
+    font-family:var(--data);font-size:11px;letter-spacing:.04em;
+    padding:8px 13px;color:var(--ink-soft);
+    border-right:1px solid var(--rule);transition:background .13s,color .13s;
+  }
+  .seg button:last-child{border-right:0;}
+  .seg button:hover{background:var(--stock-sink);color:var(--ink);}
+  .seg button[aria-pressed="true"]{background:var(--red);color:#fff;font-weight:700;}
+  .seg button:focus-visible{outline:2px solid var(--ink);outline-offset:-2px;}
+  .filternote{font-size:12px;color:var(--ink-soft);margin:9px 0 0;line-height:1.5;}
+
+  /* model card */
+  .swatchline{display:flex;align-items:center;gap:9px;}
+  .swatch{width:14px;height:14px;border-radius:3px;flex:none;
+    box-shadow:0 0 0 1px rgba(0,0,0,.2) inset;}
+  .swatch.red{background:#D1191F;}
+  .swatch.gold{background:linear-gradient(135deg,#E8C25A,#B8860B);}
+  .model{font-family:var(--display);font-size:clamp(19px,5vw,25px);
+    letter-spacing:-.01em;text-transform:uppercase;margin:0;}
+  .retail{font-family:var(--data);font-size:11px;color:var(--ink-soft);
+    letter-spacing:.03em;margin:3px 0 15px;}
+
+  .verdict{
+    display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    background:var(--stock-sink);border-radius:7px;padding:12px 13px;margin:0 0 15px;
+    border-left:3px solid var(--red);flex-wrap:wrap;
+  }
+  .verdict .vlabel{font-family:var(--data);font-size:10px;text-transform:uppercase;
+    letter-spacing:.11em;color:var(--ink-soft);}
+  .verdict .vmain{font-family:var(--data);font-size:17px;font-weight:700;
+    font-variant-numeric:tabular-nums;}
+  .verdict .vsub{font-size:12px;color:var(--ink-soft);width:100%;line-height:1.5;}
+
+  .tablewrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  caption{font-family:var(--data);font-size:10px;text-transform:uppercase;
+    letter-spacing:.12em;color:var(--ink-soft);text-align:left;padding:11px 0 7px;}
+  th{font-family:var(--data);font-size:10px;font-weight:400;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--ink-soft);text-align:right;padding:0 0 6px;
+    border-bottom:1px solid var(--rule);white-space:nowrap;}
+  th:first-child{text-align:left;}
+  td{padding:9px 0;border-bottom:1px solid var(--rule);font-family:var(--data);
+    font-size:13px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  td:first-child{text-align:left;font-family:var(--body);font-size:13px;font-weight:600;
+    white-space:normal;}
+  tr:last-child td{border-bottom:none;}
+  .up{color:var(--gain);font-weight:700;}
+  .down{color:var(--loss);font-weight:700;}
+  .muted{color:var(--ink-soft);}
+  .pill{display:inline-block;font-family:var(--data);font-size:9px;
+    text-transform:uppercase;letter-spacing:.08em;padding:2px 6px;border-radius:3px;
+    background:var(--stock-sink);color:var(--ink-soft);margin-left:6px;vertical-align:1px;}
+  .pill.presale{background:rgba(156,113,18,.15);color:var(--gold);}
+
+  canvas{width:100%;height:184px;display:block;margin:4px 0 0;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--data);font-size:10px;
+    color:var(--ink-soft);letter-spacing:.04em;margin:9px 0 0;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .dot{width:8px;height:8px;border-radius:50%;}
+
+  .comps{list-style:none;margin:0;padding:0;}
+  .comps li{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+    padding:8px 0;border-bottom:1px solid var(--rule);font-size:13px;}
+  .comps li:last-child{border-bottom:none;}
+  .comps a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule);}
+  .comps a:hover{border-bottom-color:var(--ink);}
+  .comps .cprice{font-family:var(--data);font-weight:700;font-variant-numeric:tabular-nums;
+    white-space:nowrap;}
+  .comps .cdate{font-family:var(--data);font-size:10px;color:var(--ink-soft);
+    white-space:nowrap;}
+
+  .health{font-family:var(--data);font-size:10.5px;line-height:1.7;color:var(--ink-soft);}
+  .health b{color:var(--ink);}
+  .ok{color:var(--gain);} .bad{color:var(--loss);}
+
+  .footline{font-family:var(--data);font-size:10px;letter-spacing:.05em;
+    color:rgba(255,255,255,.75);text-align:center;line-height:1.75;padding:2px 8px 0;}
+
+  @media (prefers-reduced-motion:no-preference){
+    .label{animation:settle .45s cubic-bezier(.2,.8,.3,1) backwards;}
+    .label:nth-child(2){animation-delay:.05s;} .label:nth-child(3){animation-delay:.1s;}
+    .label:nth-child(4){animation-delay:.15s;} .label:nth-child(5){animation-delay:.2s;}
+    .label:nth-child(6){animation-delay:.25s;}
+    @keyframes settle{from{opacity:0;transform:translateY(8px);}}
+  }
+</style>
+
+<main class="stack" id="app"></main>
+
+<script>
+const DATA = {"generated_at": "2026-08-29T12:55:04+00:00", "targets": [{"key": "red", "label": "Red", "retail": 498, "stockx_url": "https://stockx.com/supreme-analogue-pocket-red"}, {"key": "gold", "label": "Gold", "retail": 588, "stockx_url": "https://stockx.com/supreme-analogue-pocket-gold"}], "stockx": {"red": [{"t": "2026-08-29T11:55:32+00:00", "highest_bid": 600.0, "last_sale": 668.0, "lowest_ask": 624.0, "sales_count": 68.0}, {"t": "2026-08-29T11:58:45+00:00", "highest_bid": 600.0, "last_sale": 668.0, "lowest_ask": 624.0, "sales_count": 68.0}, {"t": "2026-08-29T12:53:37+00:00", "highest_bid": 600.0, "last_sale": 668.0, "lowest_ask": 624.0, "sales_count": 68.0}], "gold": [{"t": "2026-08-29T11:55:39+00:00", "highest_bid": 644.0, "last_sale": 708.0, "lowest_ask": 679.0, "sales_count": 49.0}, {"t": "2026-08-29T11:59:03+00:00", "highest_bid": 644.0, "last_sale": 708.0, "lowest_ask": 679.0, "sales_count": 49.0}, {"t": "2026-08-29T12:53:52+00:00", "highest_bid": 644.0, "last_sale": 708.0, "lowest_ask": 679.0, "sales_count": 49.0}]}, "ebay": {"red": [{"kind": "sale", "tag": "presale", "price": 629.99, "date": "2026-08-25", "title": "Supreme Analogue Pocket Portable Gameboy FW26 CONFIRMED ORDER RED", "url": "https://www.ebay.com/itm/336752811347", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 630.0, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - RED - PRESALE", "url": "https://www.ebay.com/itm/237019958204", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 639.99, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System - Red - Confirmed Order", "url": "https://www.ebay.com/itm/398308504420", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 639.99, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System - RED - FAST SHIPPING", "url": "https://www.ebay.com/itm/398308089106", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 640.0, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - Red - Confirmed Order", "url": "https://www.ebay.com/itm/298605588339", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 645.0, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - RED - PRESALE", "url": "https://www.ebay.com/itm/377436913748", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "sale", "tag": "presale", "price": 649.9, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - Red - Confirmed Order", "url": "https://www.ebay.com/itm/178426911187", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "sale", "tag": "presale", "price": 649.99, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System - Red - New - Presale", "url": "https://www.ebay.com/itm/307141473667", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 649.99, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System - RED - Order Confirmed\u2705", "url": "https://www.ebay.com/itm/366618563788", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 649.99, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System RED *Order Confirmed*", "url": "https://www.ebay.com/itm/168628304988", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "sale", "tag": "presale", "price": 650.0, "date": "2026-08-26", "title": "Supreme Analogue Pocket Handheld System Red - Presale", "url": "https://www.ebay.com/itm/287541013745", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 650.0, "date": "2026-08-24", "title": "Supreme Analogue Pocket Handheld System - RED - PRESALE", "url": "https://www.ebay.com/itm/800540458586", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 650.0, "date": "2026-08-23", "title": "Supreme Analogue Pocket Red", "url": "https://www.ebay.com/itm/800552238931", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 650.0, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System - Red - New - Presale", "url": "https://www.ebay.com/itm/298608775246", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 655.98, "date": "2026-08-24", "title": "Supreme Analogue Pocket Handheld System - Red - New - Presale", "url": "https://www.ebay.com/itm/820031145345", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 665.0, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - Red - IN HAND, READY TO SHIP", "url": "https://www.ebay.com/itm/800542144017", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 670.0, "date": "2026-08-20", "title": "Supreme Analogue Pocket Red Confirmed order", "url": "https://www.ebay.com/itm/137643729702", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 675.0, "date": "2026-08-28", "title": "Supreme Analogue Pocket Handheld System Red Region Free USB-C Rechargeable", "url": "https://www.ebay.com/itm/327330190738", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 675.0, "date": "2026-08-24", "title": "Supreme Analogue Pocket Handheld System - RED - ORDER SHIPPED \u2705", "url": "https://www.ebay.com/itm/366618662547", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "bid", "tag": "in_hand", "price": 680.0, "date": null, "title": "Supreme Analogue Pocket Handheld System Red Region Free USB-C Rechargeable", "url": "https://www.ebay.com/itm/198589801457", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 680.0, "date": null, "title": "Supreme Analogue Pocket Red", "url": "https://www.ebay.com/itm/407174834253", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 688.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Red - Confirmed", "url": "https://www.ebay.com/itm/398308011099", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 688.88, "date": null, "title": "SUPREME FW26 ANALOGUE POCKET GAME BOY CONSOLE RED GOLD", "url": "https://www.ebay.com/itm/336763577401", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 693.0, "date": "2026-08-28", "title": "Supreme Analogue Pocket in Red *SEALED*", "url": "https://www.ebay.com/itm/287547156626", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 695.95, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System Gameboy - RED - ORDER CONFIRMED \u2705", "url": "https://www.ebay.com/itm/407159483104", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 698.0, "date": null, "title": "Supreme Analogue Pocket Red", "url": "https://www.ebay.com/itm/366618655591", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 698.0, "date": null, "title": "Supreme Analogue Pocket Red", "url": "https://www.ebay.com/itm/117379617519", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 698.0, "date": "2026-08-23", "title": "Supreme Analogue Pocket Red", "url": "https://www.ebay.com/itm/366618655591", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 699.99, "date": null, "title": "Supreme Analogue Pocket Handheld System -RED- IN HAND SHIPS NOW", "url": "https://www.ebay.com/itm/188852348012", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 699.99, "date": "2026-08-27", "title": "Supreme Analogue Pocket Handheld System - RED - IN HAND SHIPS NOW", "url": "https://www.ebay.com/itm/820035835740", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 699.99, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - RED - PRESALE", "url": "https://www.ebay.com/itm/158209378380", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 700.0, "date": null, "title": "Supreme Analogue Pocket Red Limited Edition Handheld Electronic Game System", "url": "https://www.ebay.com/itm/407172122522", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "ask", "tag": "presale", "price": 700.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - ORDER CONFIRMED \u2705", "url": "https://www.ebay.com/itm/168628539088", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "presale", "price": 700.0, "date": null, "title": "Supreme Analogue Pocket Handheld System Red *CONFIRMED ORDER* \u2705", "url": "https://www.ebay.com/itm/298604644283", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 700.0, "date": null, "title": "Supreme\u00ae/Analogue Pocket Red In Hand", "url": "https://www.ebay.com/itm/178432713720", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 700.0, "date": "2026-08-27", "title": "Supreme Analogue Pocket Red", "url": "https://www.ebay.com/itm/336763550948", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 700.0, "date": "2026-08-21", "title": "Supreme Analogue Pocket - Red (CONFIRMED ORDER)", "url": "https://www.ebay.com/itm/278299187785", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 715.0, "date": "2026-08-24", "title": "Supreme Analogue Pocket Handheld System - RED - IN HAND", "url": "https://www.ebay.com/itm/257692943887", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 715.0, "date": "2026-08-22", "title": "Supreme\u00ae/Analogue Pocket Red In Hand", "url": "https://www.ebay.com/itm/178426928282", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 717.77, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - Red - IN HAND\u2026 SEALED *See Pics*", "url": "https://www.ebay.com/itm/168629315410", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "ask", "tag": "presale", "price": 719.99, "date": null, "title": "Supreme Analogue Pocket RED - Presale CONFIRMED ORDER", "url": "https://www.ebay.com/itm/398308325857", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 725.0, "date": null, "title": "Supreme x Analogue Pocket Red Limited Edition Handheld System Brand New Sealed", "url": "https://www.ebay.com/itm/168639084814", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "sale", "tag": "presale", "price": 725.0, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - RED - ORDER CONFIRMED \u2705", "url": "https://www.ebay.com/itm/398308023799", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "sale", "tag": "presale", "price": 737.14, "date": "2026-08-20", "title": "Supreme Analogue Pocket Portable Gameboy FW26 CONFIRMED ORDER RED", "url": "https://www.ebay.com/itm/278299116435", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "ask", "tag": "presale", "price": 744.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - ORDER CONFIRMED \u2705", "url": "https://www.ebay.com/itm/820027552748", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 745.99, "date": null, "title": "Supreme Analogue Pocket Handheld - Red - IN HAND, READY TO SHIP ASAP", "url": "https://www.ebay.com/itm/800548806118", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 749.99, "date": null, "title": "Supreme Analogue Pocket Red (Brand New Sealed) Handheld Console Limited Edition", "url": "https://www.ebay.com/itm/128046078467", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "ask", "tag": "presale", "price": 749.99, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - Order Confirmed SHIPS ASAP \ud83d\udd79\ufe0f", "url": "https://www.ebay.com/itm/117372392353", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 750.0, "date": null, "title": "Supreme Analogue Pocket Handheld Electronic Game System Red (2026)", "url": "https://www.ebay.com/itm/820055299516", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 750.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - IN HAND", "url": "https://www.ebay.com/itm/178437242802", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 750.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - In Hand Ready to Ship", "url": "https://www.ebay.com/itm/198589121117", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 750.0, "date": null, "title": "Supreme Analogue Pocket Red", "url": "https://www.ebay.com/itm/287545587878", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "presale", "price": 750.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - PRESALE\u2705\u2705 CONFIRMED", "url": "https://www.ebay.com/itm/366618470356", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "sale", "tag": "presale", "price": 750.0, "date": "2026-08-24", "title": "Supreme Analogue Pocket Handheld System - RED - Order Confirmed", "url": "https://www.ebay.com/itm/237019239937", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 750.0, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System - Red - IN HAND. SEALED *SHIPS ASAP", "url": "https://www.ebay.com/itm/820033272552", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 755.12, "date": null, "title": "Supreme Analogue Pocket RED Portable Gameboy FW26 IN HAND SHIPS NOW", "url": "https://www.ebay.com/itm/278307496457", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "sale", "tag": "presale", "price": 755.12, "date": "2026-08-21", "title": "Supreme Analogue Pocket Portable Gameboy FW26 CONFIRMED ORDER RED", "url": "https://www.ebay.com/itm/278300739853", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 770.0, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - RED", "url": "https://www.ebay.com/itm/227484674570", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 775.0, "date": null, "title": "Supreme Analogue Pocket Aluminum Body- Red (IN HAND / Sealed Box)", "url": "https://www.ebay.com/itm/137670202749", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 780.0, "date": null, "title": "Supreme Analogue Pocket - Red IN HAND - Ready To Ship", "url": "https://www.ebay.com/itm/128044206835", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 785.0, "date": null, "title": "Supreme Analogue Pocket Red - IN HAND SHIPS ASAP", "url": "https://www.ebay.com/itm/206506554933", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 787.46, "date": "2026-08-26", "title": "Analogue Pocket Supreme Limited Edition Red Handheld Console Brand New Sealed", "url": "https://www.ebay.com/itm/298617383037", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "sale", "tag": "presale", "price": 798.0, "date": "2026-08-21", "title": "Supreme Analogue Pocket Red - Order confirmed", "url": "https://www.ebay.com/itm/820027459500", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 799.0, "date": null, "title": "Supreme Analogue Pocket - Red IN HAND - SHIPS ASAP \ud83d\udd25\u2705", "url": "https://www.ebay.com/itm/407161565221", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 799.0, "date": "2026-08-26", "title": "Supreme Analogue Pocket - Red IN HAND - SHIPS ASAP \ud83d\udd25\u2705", "url": "https://www.ebay.com/itm/407161565221", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 799.99, "date": null, "title": "F/W 2026 Supreme Analogue Pocket Handheld System RED - IN HAND SHIPS ASAP \ud83d\udd79\ufe0f", "url": "https://www.ebay.com/itm/267762705813", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 799.99, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System - RED In Hand", "url": "https://www.ebay.com/itm/336752972540", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 800.0, "date": null, "title": "Supreme Analogue Pocket Supreme [Gold] Handheld Console Red Box FW26A42A", "url": "https://www.ebay.com/itm/257696927451", "seen": "2026-08-29T12:03:46+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 800.0, "date": null, "title": "FW26 Supreme Analogue Pocket Handheld System - RED", "url": "https://www.ebay.com/itm/800547538565", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "presale", "price": 800.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - \u2705 ORDER CONFIRMED\u2705", "url": "https://www.ebay.com/itm/137643559944", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 800.0, "date": "2026-08-25", "title": "Supreme Analogue Pocket Supreme [Gold] Handheld Console Red Box FW26A42A", "url": "https://www.ebay.com/itm/257696927451", "seen": "2026-08-29T12:07:45+00:00"}, {"kind": "sale", "tag": "presale", "price": 810.95, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - Red - Confirmed Order", "url": "https://www.ebay.com/itm/398308704796", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "ask", "tag": "presale", "price": 839.99, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - CONFIRMED ORDER", "url": "https://www.ebay.com/itm/188822619485", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "sale", "tag": "presale", "price": 868.88, "date": "2026-08-25", "title": "Supreme Analogue Pocket Handheld System - RED - Order Confirmed", "url": "https://www.ebay.com/itm/206512920169", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 900.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Red", "url": "https://www.ebay.com/itm/267762036039", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 926.79, "date": "2026-08-20", "title": "Supreme Pocket Analogue Red FW26", "url": "https://www.ebay.com/itm/227484230745", "seen": "2026-08-29T12:07:46+00:00"}, {"kind": "ask", "tag": "presale", "price": 988.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - Confirmed Order", "url": "https://www.ebay.com/itm/287536474824", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 999.99, "date": null, "title": "Supreme Analogue Pocket Limited Edition Handheld System - Red - New - On Hand", "url": "https://www.ebay.com/itm/147521528231", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1000.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - RED - CONFIRMED", "url": "https://www.ebay.com/itm/158209375516", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1042.53, "date": null, "title": "Supreme Analogue Pocket Portable FW26 Week One RED - IN HAND", "url": "https://www.ebay.com/itm/800540499310", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1150.0, "date": null, "title": "Supreme x Analogue Pocket - Glossy RED (SEALED)", "url": "https://www.ebay.com/itm/336752798143", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1200.0, "date": null, "title": "Supreme Analogue Pocket Handheld System Red Nintendo Game Boy GB Advance Console", "url": "https://www.ebay.com/itm/178445786813", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1200.0, "date": null, "title": "\u201cGold\u201d Supreme x Analogue Pocket Red Box Packaging (Recipe Included)", "url": "https://www.ebay.com/itm/820033629513", "seen": "2026-08-29T12:03:47+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1465.17, "date": null, "title": "Supreme x Analogue Pocket Red Gold 2colors 26FW", "url": "https://www.ebay.com/itm/820040197320", "seen": "2026-08-29T12:03:47+00:00"}], "gold": [{"kind": "ask", "tag": "in_hand", "price": 688.88, "date": null, "title": "SUPREME FW26 ANALOGUE POCKET GAME BOY CONSOLE RED GOLD", "url": "https://www.ebay.com/itm/336763577401", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 720.0, "date": null, "title": "Supreme\u00ae/Analogue Pocket | Gold", "url": "https://www.ebay.com/itm/178445980909", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 720.0, "date": "2026-08-26", "title": "Supreme Analogue Pocket Handheld System Gold 24k", "url": "https://www.ebay.com/itm/137664473281", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 739.99, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE", "url": "https://www.ebay.com/itm/158209380227", "seen": "2026-08-29T12:06:36+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 749.95, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - Gold CONFIRMED SHIPS NOW", "url": "https://www.ebay.com/itm/298604430677", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 749.99, "date": "2026-08-29", "title": "Supreme Analogue Pocket Gold Brand New! In Hand Ready To Ship", "url": "https://www.ebay.com/itm/137665457669", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 749.99, "date": "2026-08-27", "title": "Supreme Analogue Pocket Gold Brand New!! In Hand Ready To Ship!", "url": "https://www.ebay.com/itm/137665458585", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 749.99, "date": "2026-08-24", "title": "Supreme Analogue Pocket Handheld System - Gold - CONFIRMED", "url": "https://www.ebay.com/itm/318759426431", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 749.99, "date": "2026-08-23", "title": "Supreme Analogue Pocket Gold Brand New!!", "url": "https://www.ebay.com/itm/137643951309", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 749.99, "date": "2026-08-22", "title": "Supreme Analogue Pocket Gold Brand New!", "url": "https://www.ebay.com/itm/137643616004", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 749.99, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System Gold 24K FW26 Video Game New CONFIRMED", "url": "https://www.ebay.com/itm/117369999156", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 750.0, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/278299130733", "seen": "2026-08-29T12:06:36+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 759.95, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - Gold CONFIRMED SHIPS NOW", "url": "https://www.ebay.com/itm/298607560353", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 764.99, "date": "2026-08-23", "title": "Supreme Analogue Pocket Gold Brand New! Game Boy Authentic (Ready to ship)", "url": "https://www.ebay.com/itm/158216048475", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 764.99, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE Order confirmed", "url": "https://www.ebay.com/itm/287538423585", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 765.0, "date": "2026-08-27", "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE ORDER CONFIRMED", "url": "https://www.ebay.com/itm/198584615818", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 770.0, "date": "2026-08-26", "title": "Supreme x Analogue Pocket Handheld Console - 24K Gold Plated - SHIPS THURS 8/27", "url": "https://www.ebay.com/itm/158223780660", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 774.95, "date": "2026-08-27", "title": "Supreme Analogue Pocket Handheld System - GOLD - New - [CONFIRMED ORDER]", "url": "https://www.ebay.com/itm/206506241825", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 774.95, "date": "2026-08-24", "title": "Supreme Analogue Pocket Handheld System FW26 - Gold - PRESALE ORDER CONFIRMED\u2705\u2705", "url": "https://www.ebay.com/itm/800540519264", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 774.95, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/237019539212", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 774.99, "date": "2026-08-25", "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - IN HAND NEXT DAY SHIP", "url": "https://www.ebay.com/itm/178426910060", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 774.99, "date": "2026-08-23", "title": "Supreme Analogue Pocket Handheld System Gold PRESALE CONFIRMED ORDER", "url": "https://www.ebay.com/itm/366618528848", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 779.99, "date": "2026-08-23", "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/307141464991", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 784.95, "date": null, "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated BRAND NEW SHIPS SAME DAY", "url": "https://www.ebay.com/itm/318759781611", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "presale", "price": 785.0, "date": "2026-08-20", "title": "Supreme x Analogue Pocket 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/336752949490", "seen": "2026-08-29T12:06:36+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 785.99, "date": "2026-08-23", "title": "Supreme Analogue Pocket Handheld System 24K Gold Plated NEW (Trusted Seller)", "url": "https://www.ebay.com/itm/206506284010", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 789.0, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - IN HAND - SHIPS TODAY", "url": "https://www.ebay.com/itm/318764988116", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 789.99, "date": "2026-08-21", "title": "Supreme Analogue Pocket Gold Handheld Console - CONFIRMED PRESALE FW26 New", "url": "https://www.ebay.com/itm/318763440845", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 789.99, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE Order confirmed", "url": "https://www.ebay.com/itm/327319549112", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 790.0, "date": "2026-08-24", "title": "Supreme Analogue Pocket GOLD IN HAND SHIPS ASAP", "url": "https://www.ebay.com/itm/298612137715", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 794.5, "date": "2026-08-27", "title": "Analogue Pocket Supreme 24k GOLD Handheld System", "url": "https://www.ebay.com/itm/178439833020", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 794.95, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold IN HAND", "url": "https://www.ebay.com/itm/307142846670", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 795.0, "date": null, "title": "Supreme Analogue Pocket - GOLD (SHIPS IN HAND ASAP \ud83d\udd25\u2705)", "url": "https://www.ebay.com/itm/257697782746", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 795.0, "date": "2026-08-27", "title": "Supreme Analogue Pocket - GOLD (SHIPS IN HAND ASAP \ud83d\udd25\u2705)", "url": "https://www.ebay.com/itm/257697782746", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 795.55, "date": "2026-08-24", "title": "Supreme Analogue Pocket Handheld 24k Gold Plated Gameboy - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/407159496484", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 798.0, "date": null, "title": "Supreme Analogue Pocket Gold", "url": "https://www.ebay.com/itm/366618650604", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 798.0, "date": null, "title": "Supreme\u00ae/Analogue Pocket Gold", "url": "https://www.ebay.com/itm/307140944544", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 798.0, "date": "2026-08-27", "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated [READY TO SHIP]", "url": "https://www.ebay.com/itm/307137964608", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 798.0, "date": "2026-08-23", "title": "Supreme Analogue Pocket Gold", "url": "https://www.ebay.com/itm/366618650604", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 798.0, "date": "2026-08-22", "title": "Supreme Analogue Pocket 24K Gold Handheld Console", "url": "https://www.ebay.com/itm/267763753607", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 798.0, "date": "2026-08-22", "title": "Supreme Analogue Pocket Gold", "url": "https://www.ebay.com/itm/287540210903", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 799.99, "date": null, "title": "Supreme Analogue Pocket Handheld System -GOLD- IN HAND SHIPS NOW", "url": "https://www.ebay.com/itm/188852258403", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 799.99, "date": null, "title": "Supreme Analogue Pocket - GOLD (SHIPS IN HAND ASAP \ud83d\udd25\u2705)", "url": "https://www.ebay.com/itm/377451751507", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 799.99, "date": "2026-08-28", "title": "Supreme Analogue Pocket Handheld System -GOLD- IN HAND SHIPS NOW", "url": "https://www.ebay.com/itm/188852258403", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 799.99, "date": "2026-08-28", "title": "Supreme Analogue Pocket - GOLD (In Hand Ships Next Business Day)", "url": "https://www.ebay.com/itm/158230592629", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 799.99, "date": "2026-08-27", "title": "Supreme Analogue Pocket Gold In Hand", "url": "https://www.ebay.com/itm/336752970622", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 799.99, "date": "2026-08-27", "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE Order confirmed", "url": "https://www.ebay.com/itm/366628778176", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 799.99, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System | 24k Gold Plated | SHIPS ASAP!", "url": "https://www.ebay.com/itm/407158878906", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 800.0, "date": null, "title": "Supreme Analogue Pocket Gold Portable Handheld System FW26", "url": "https://www.ebay.com/itm/287549312824", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 800.0, "date": null, "title": "Supreme Analogue Pocket Supreme [Gold] Handheld Console Red Box FW26A42A", "url": "https://www.ebay.com/itm/257696927451", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 800.0, "date": "2026-08-25", "title": "Supreme Analogue Pocket Supreme [Gold] Handheld Console Red Box FW26A42A", "url": "https://www.ebay.com/itm/257696927451", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "sale", "tag": "presale", "price": 800.0, "date": "2026-08-20", "title": "Supreme Analogue Pocket 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/318759529054", "seen": "2026-08-29T12:06:36+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 810.0, "date": "2026-08-26", "title": "Supreme Analogue Pocket System Gold - IN HAND", "url": "https://www.ebay.com/itm/117379649850", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 811.0, "date": null, "title": "Supreme Analogue Pocket 24k Gold Plated", "url": "https://www.ebay.com/itm/158219056828", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "presale", "price": 820.0, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/237019264301", "seen": "2026-08-29T12:06:36+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 824.97, "date": null, "title": "Supreme x Analogue Pocket Handheld \u2013 Gold", "url": "https://www.ebay.com/itm/206515604465", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 824.98, "date": "2026-08-22", "title": "Supreme Analogue Pocket Handheld System - Gold - IN HAND", "url": "https://www.ebay.com/itm/257696420659", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 824.99, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold - IN HAND", "url": "https://www.ebay.com/itm/257698737723", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 824.99, "date": "2026-08-28", "title": "Supreme Analogue Pocket Handheld System - Gold - IN HAND", "url": "https://www.ebay.com/itm/257698737723", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "presale", "price": 825.0, "date": null, "title": "Supreme Analogue Pocket Handheld System 24k Gold - CONFIRMED ORDER", "url": "https://www.ebay.com/itm/128036459843", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 827.04, "date": null, "title": "Supreme Analogue Pocket Gold Sealed (RARE)", "url": "https://www.ebay.com/itm/398327957066", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 849.99, "date": null, "title": "Supreme Analogue Pocket Gold Brand New! Game Boy Authentic", "url": "https://www.ebay.com/itm/147521697975", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "presale", "price": 849.99, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE Order confirmed", "url": "https://www.ebay.com/itm/188823965843", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 850.0, "date": null, "title": "NEW Supreme Analogue Pocket Gold FW26 IN HAND", "url": "https://www.ebay.com/itm/377449419332", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 850.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - GOLD - Order Confirmed SHIPS ASAP \ud83d\udd79\ufe0f", "url": "https://www.ebay.com/itm/117372393827", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 850.0, "date": null, "title": "Supreme Analogue Pocket Handheld System FW26 - Gold - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/137646487905", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 850.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold - Confirmed", "url": "https://www.ebay.com/itm/298604434566", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "presale", "price": 850.0, "date": "2026-08-21", "title": "Supreme Analogue Pocket Handheld System - Gold - Order confirmed", "url": "https://www.ebay.com/itm/820027465482", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "presale", "price": 875.0, "date": null, "title": "Supreme Analogue Pocket 24k Gold Handheld Console - CONFIRMED PRESALE NEW", "url": "https://www.ebay.com/itm/298606853128", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 875.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE Order confirmed", "url": "https://www.ebay.com/itm/820027567518", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "presale", "price": 875.0, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE Order confirmed", "url": "https://www.ebay.com/itm/820027414428", "seen": "2026-08-29T12:06:36+00:00"}, {"kind": "sale", "tag": "presale", "price": 879.97, "date": "2026-08-23", "title": "Supreme Analogue Pocket 24K Gold CONFIRMED ORDER DEADSTOCK SEALED FREE POSTAGE", "url": "https://www.ebay.com/itm/198588934452", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "presale", "price": 899.99, "date": null, "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/336753064658", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 899.99, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE\u2705\u2705 - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/267762703665", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "presale", "price": 899.99, "date": "2026-08-25", "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/336753064658", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 900.0, "date": null, "title": "Gold Supreme Analogue Pocket Limited Edition Handheld System", "url": "https://www.ebay.com/itm/198599037916", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "presale", "price": 900.0, "date": "2026-08-20", "title": "Supreme Analogue Pocket Handheld System - Gold - PRESALE Order confirmed", "url": "https://www.ebay.com/itm/117370242106", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 950.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold Ship Now", "url": "https://www.ebay.com/itm/267762028860", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 985.99, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold - IN HAND", "url": "https://www.ebay.com/itm/800540958268", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 999.98, "date": null, "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/298604644455", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 999.99, "date": null, "title": "Supreme Analogue Pocket - GOLD (SHIPS IN HAND ASAP \ud83d\udd25\u2705)", "url": "https://www.ebay.com/itm/407163304888", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 999.99, "date": null, "title": "Supreme Analogue Pocket Gold Handheld Console - CONFIRMED PRESALE FW26 New", "url": "https://www.ebay.com/itm/168631359510", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "in_hand", "price": 999.99, "date": "2026-08-22", "title": "Supreme Analogue Pocket - GOLD (SHIPS IN HAND ASAP \ud83d\udd25\u2705)", "url": "https://www.ebay.com/itm/407163304888", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1000.0, "date": null, "title": "Supreme Analogue Pocket - GOLD (SHIPS IN HAND ASAP \ud83d\udd25\u2705)", "url": "https://www.ebay.com/itm/377449732421", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1000.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold - IN HAND", "url": "https://www.ebay.com/itm/307139483943", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1000.0, "date": null, "title": "Analogue Pocket Supreme x Handheld System Gold Limited Edition", "url": "https://www.ebay.com/itm/800540599955", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1000.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold - Confirmed", "url": "https://www.ebay.com/itm/318759486291", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1000.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold - Confirmed", "url": "https://www.ebay.com/itm/158209372527", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1050.0, "date": null, "title": "Supreme Analogue Pocket 24k Gold Handheld System Console - Gold", "url": "https://www.ebay.com/itm/168644004864", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1100.0, "date": null, "title": "Supreme x Analogue Pocket Handheld \u2013 Gold", "url": "https://www.ebay.com/itm/267762838993", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 1100.0, "date": null, "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/800540732042", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 1100.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold Plated - PRESALE\u2705\u2705", "url": "https://www.ebay.com/itm/128036408793", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 1149.99, "date": null, "title": "Supreme Analogue Pocket 24k Gold Plated/confirmed Order", "url": "https://www.ebay.com/itm/257693018711", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 1195.0, "date": null, "title": "Supreme Analogue Pocket Handheld 24k Gold Plated PRESALE", "url": "https://www.ebay.com/itm/147519003424", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 1199.99, "date": null, "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/298604580701", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1200.0, "date": null, "title": "Supreme Analogue Pocket Gold", "url": "https://www.ebay.com/itm/178437802596", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1200.0, "date": null, "title": "\u201cGold\u201d Supreme x Analogue Pocket Red Box Packaging (Recipe Included)", "url": "https://www.ebay.com/itm/820033629513", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "presale", "price": 1200.0, "date": null, "title": "Supreme Analogue Pocket Handheld System 24k Gold Plated - ORDER CONFIRMED", "url": "https://www.ebay.com/itm/366618487232", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1200.0, "date": null, "title": "Analogue Supreme/Analogue Pocket Handheld System Console Gold USB-C, Jack", "url": "https://www.ebay.com/itm/366618496524", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1250.0, "date": null, "title": "Supreme Analogue Pocket Handheld System - Gold IN HAND SOLDOUT!!!", "url": "https://www.ebay.com/itm/267763735682", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1465.17, "date": null, "title": "Supreme x Analogue Pocket Red Gold 2colors 26FW", "url": "https://www.ebay.com/itm/820040197320", "seen": "2026-08-29T12:04:06+00:00"}, {"kind": "sale", "tag": "presale", "price": 1664.12, "date": "2026-08-23", "title": "Supreme Analogue Pocket Handheld Systems - Red and Gold - Confirmed Order", "url": "https://www.ebay.com/itm/407161566707", "seen": "2026-08-29T12:06:35+00:00"}, {"kind": "ask", "tag": "in_hand", "price": 1737.74, "date": null, "title": "Supreme x Analogue Pocket - Sealed GOLD - Picked Up at Milan Store \u2705", "url": "https://www.ebay.com/itm/267762783101", "seen": "2026-08-29T12:04:06+00:00"}]}, "fees": {"stockx": 0.12, "ebay": 0.1335}, "runs": [{"source": "ebay-sold/gold", "status": "ok", "detail": "0 new \u00b7 {'cards_seen': 55, 'matched': 53, 'out_of_band': 0}", "at": "2026-08-29T12:54:58+00:00"}, {"source": "ebay-sold/red", "status": "ok", "detail": "0 new \u00b7 {'cards_seen': 127, 'matched': 43, 'out_of_band': 2}", "at": "2026-08-29T12:54:41+00:00"}, {"source": "ebay-active/gold", "status": "ok", "detail": "0 new \u00b7 {'cards_seen': 66, 'matched': 50, 'out_of_band': 0}", "at": "2026-08-29T12:54:22+00:00"}, {"source": "ebay-active/red", "status": "ok", "detail": "0 new \u00b7 {'cards_seen': 60, 'matched': 41, 'out_of_band': 1}", "at": "2026-08-29T12:54:02+00:00"}, {"source": "stockx/gold", "status": "ok", "detail": "4 new \u00b7 {'lowest_ask': 679.0, 'highest_bid': 644.0, 'last_sale': 708.0, 'sales_count': 49.0}", "at": "2026-08-29T12:53:45+00:00"}, {"source": "stockx/red", "status": "ok", "detail": "4 new \u00b7 {'lowest_ask': 624.0, 'highest_bid': 600.0, 'last_sale': 668.0, 'sales_count': 68.0}", "at": "2026-08-29T12:53:30+00:00"}, {"source": "ebay-sold/red", "status": "ok", "detail": "43 new \u00b7 {'cards_seen': 127, 'matched': 43, 'out_of_band': 2}", "at": "2026-08-29T12:07:05+00:00"}, {"source": "ebay-active/red", "status": "ok", "detail": "0 new \u00b7 {'cards_seen': 60, 'matched': 41, 'out_of_band': 1}", "at": "2026-08-29T12:06:45+00:00"}, {"source": "ebay-sold/gold", "status": "ok", "detail": "53 new \u00b7 {'cards_seen': 55, 'matched': 53, 'out_of_band': 0}", "at": "2026-08-29T12:05:57+00:00"}, {"source": "ebay-sold/red", "status": "error", "detail": "eBay throttled us past the retry budget; the next scheduled run should recover\nTraceback (most recent call last):\n  File \"/Users/anthony/Projects/supreme-prices", "at": "2026-08-29T12:04:17+00:00"}, {"source": "ebay-active/gold", "status": "ok", "detail": "50 new \u00b7 {'cards_seen': 66, 'matched': 50, 'out_of_band': 0}", "at": "2026-08-29T12:04:00+00:00"}, {"source": "ebay-active/red", "status": "ok", "detail": "41 new \u00b7 {'cards_seen': 60, 'matched': 41, 'out_of_band': 1}", "at": "2026-08-29T12:03:36+00:00"}]};
+let FILTER = "all";
+
+const $ = (h) => { const t = document.createElement("template");
+  t.innerHTML = h.trim(); return t.content.firstElementChild; };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const usd = (n) => n == null ? "—" : "$" + Math.round(n).toLocaleString("en-US");
+
+function median(xs){
+  if(!xs.length) return null;
+  const s = [...xs].sort((a,b)=>a-b), m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2;
+}
+function pctOver(price, retail){
+  if(price == null) return "—";
+  const p = Math.round((price / retail - 1) * 100);
+  return (p >= 0 ? "+" : "") + p + "%";
+}
+function cls(price, retail){
+  if(price == null) return "muted";
+  return price >= retail ? "up" : "down";
+}
+function rows(key, kind){
+  return DATA.ebay[key].filter(r =>
+    r.kind === kind && (FILTER === "all" || r.tag === FILTER));
+}
+function latestStockx(key){
+  const s = DATA.stockx[key];
+  return s.length ? s[s.length - 1] : {};
+}
+
+function verdictFor(t){
+  const sx = latestStockx(t.key);
+  const sxNet = sx.highest_bid ? sx.highest_bid * (1 - DATA.fees.stockx) : null;
+  const eb = median(rows(t.key, "sale").map(r => r.price));
+  const ebNet = eb ? eb * (1 - DATA.fees.ebay) : null;
+  let best = null, other = null, bestName = "", otherName = "";
+  if(sxNet != null && ebNet != null){
+    if(ebNet >= sxNet){ best = ebNet; bestName = "eBay"; other = sxNet; otherName = "StockX"; }
+    else { best = sxNet; bestName = "StockX"; other = ebNet; otherName = "eBay"; }
+  }
+  return {sx, sxNet, eb, ebNet, best, other, bestName, otherName};
+}
+
+function modelCard(t){
+  const v = verdictFor(t);
+  const sx = v.sx;
+  const asks = rows(t.key, "ask").map(r => r.price);
+  const sales = rows(t.key, "sale").map(r => r.price);
+  const n = sales.length;
+
+  const diff = (v.best != null && v.other != null) ? v.best - v.other : null;
+  const verdictHtml = v.best == null
+    ? `<span class="vlabel">Net to you</span>
+       <span class="vmain muted">not enough data yet</span>`
+    : `<span class="vlabel">Best net to you — after fees</span>
+       <span class="vmain">${usd(v.best)} <span class="muted">via ${esc(v.bestName)}</span></span>
+       <span class="vsub">${esc(v.bestName)} clears about ${usd(Math.abs(diff))} more than
+         ${esc(v.otherName)} (${usd(v.other)}). StockX is an instant sale into the
+         highest bid; eBay is the median of ${n} sold comp${n === 1 ? "" : "s"} and
+         takes time to fill.</span>`;
+
+  const card = $(`<section class="label">
+    <div class="swatchline">
+      <span class="swatch ${t.key}"></span><h2 class="model">${esc(t.label)}</h2>
+    </div>
+    <p class="retail">RETAIL $${t.retail}</p>
+    <div class="verdict">${verdictHtml}</div>
+    <div class="tablewrap">
+      <table>
+        <caption>StockX — order book</caption>
+        <thead><tr><th>Metric</th><th>Price</th><th>Over retail</th></tr></thead>
+        <tbody>
+          <tr><td>Last sale</td><td>${usd(sx.last_sale)}</td>
+              <td class="${cls(sx.last_sale, t.retail)}">${pctOver(sx.last_sale, t.retail)}</td></tr>
+          <tr><td>Lowest ask</td><td>${usd(sx.lowest_ask)}</td>
+              <td class="${cls(sx.lowest_ask, t.retail)}">${pctOver(sx.lowest_ask, t.retail)}</td></tr>
+          <tr><td>Highest bid</td><td>${usd(sx.highest_bid)}</td>
+              <td class="${cls(sx.highest_bid, t.retail)}">${pctOver(sx.highest_bid, t.retail)}</td></tr>
+          <tr><td>Sales all-time</td><td>${sx.sales_count ?? "—"}</td><td class="muted">—</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <caption>eBay — ${FILTER === "all" ? "all listings"
+          : FILTER === "presale" ? "presale only" : "in-hand only"}</caption>
+        <thead><tr><th>Metric</th><th>Price</th><th>Over retail</th></tr></thead>
+        <tbody>
+          <tr><td>Median sold</td><td>${usd(median(sales))}</td>
+              <td class="${cls(median(sales), t.retail)}">${pctOver(median(sales), t.retail)}</td></tr>
+          <tr><td>Sold range</td>
+              <td>${n ? usd(Math.min(...sales)) + "–" + usd(Math.max(...sales)) : "—"}</td>
+              <td class="muted">${n} comp${n === 1 ? "" : "s"}</td></tr>
+          <tr><td>Lowest ask</td><td>${asks.length ? usd(Math.min(...asks)) : "—"}</td>
+              <td class="${cls(asks.length ? Math.min(...asks) : null, t.retail)}">
+                ${pctOver(asks.length ? Math.min(...asks) : null, t.retail)}</td></tr>
+          <tr><td>Median ask</td><td>${usd(median(asks))}</td>
+              <td class="muted">${asks.length} listed</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>`);
+  return card;
+}
+
+function chartCard(){
+  const card = $(`<section class="label">
+    <h3 style="font-family:var(--data);font-size:10px;font-weight:400;
+      text-transform:uppercase;letter-spacing:.12em;color:var(--ink-soft);margin:0 0 4px;">
+      eBay sold comps by date</h3>
+    <canvas id="chart"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#D1191F"></i>Red</span>
+      <span><i class="dot" style="background:#B8860B"></i>Gold</span>
+      <span id="retail-legend" hidden><i class="dot"
+        style="background:var(--ink-soft);opacity:.45"></i>retail line</span>
+    </div>
+  </section>`);
+  return card;
+}
+
+function drawChart(){
+  const cv = document.getElementById("chart");
+  if(!cv) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = 184;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d");
+  g.scale(dpr, dpr);
+  g.clearRect(0, 0, w, h);
+
+  const pts = [];
+  for(const t of DATA.targets){
+    for(const r of rows(t.key, "sale")){
+      if(r.date) pts.push({x: Date.parse(r.date), y: r.price, key: t.key});
+    }
+  }
+  const pad = {l: 46, r: 10, t: 12, b: 22};
+  if(pts.length < 2){
+    g.fillStyle = "#6B6560";
+    g.font = "12px ui-monospace, Menlo, monospace";
+    g.fillText("collecting — not enough dated comps yet", pad.l, h / 2);
+    return;
+  }
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const y0 = Math.min(...ys) * 0.96, y1 = Math.max(...ys) * 1.04;
+  const X = v => pad.l + (x1 === x0 ? 0.5 : (v - x0) / (x1 - x0)) * (w - pad.l - pad.r);
+  const Y = v => pad.t + (1 - (v - y0) / (y1 - y0)) * (h - pad.t - pad.b);
+
+  // horizontal grid + price axis
+  g.font = "9px ui-monospace, Menlo, monospace";
+  g.textAlign = "right";
+  for(let i = 0; i <= 3; i++){
+    const val = y0 + (y1 - y0) * i / 3, y = Y(val);
+    g.strokeStyle = "rgba(20,17,15,.09)"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(pad.l, y); g.lineTo(w - pad.r, y); g.stroke();
+    g.fillStyle = "#6B6560";
+    g.fillText("$" + Math.round(val), pad.l - 7, y + 3);
+  }
+  // retail reference lines
+  let drewRetail = false;
+  for(const t of DATA.targets){
+    if(t.retail < y0 || t.retail > y1) continue;
+    drewRetail = true;
+    g.strokeStyle = "rgba(20,17,15,.3)"; g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(pad.l, Y(t.retail)); g.lineTo(w - pad.r, Y(t.retail)); g.stroke();
+    g.setLineDash([]);
+  }
+  const rl = document.getElementById("retail-legend");
+  if(rl) rl.hidden = !drewRetail;
+  // date axis
+  g.fillStyle = "#6B6560";
+  [[x0, "left"], [x1, "right"]].forEach(([v, align]) => {
+    g.textAlign = align;
+    const d = new Date(v);
+    g.fillText(d.toLocaleDateString("en-US", {month: "short", day: "numeric", timeZone: "UTC"}),
+      align === "left" ? pad.l : w - pad.r, h - 7);
+  });
+  // points
+  for(const p of pts){
+    g.beginPath();
+    g.arc(X(p.x), Y(p.y), 3.4, 0, Math.PI * 2);
+    g.fillStyle = p.key === "red" ? "rgba(209,25,31,.72)" : "rgba(184,134,11,.72)";
+    g.fill();
+  }
+  // daily median trend per colorway
+  for(const t of DATA.targets){
+    const byDay = {};
+    for(const p of pts.filter(p => p.key === t.key)) (byDay[p.x] ||= []).push(p.y);
+    const line = Object.keys(byDay).map(Number).sort((a, b) => a - b)
+      .map(d => [d, median(byDay[d])]);
+    if(line.length < 2) continue;
+    g.strokeStyle = t.key === "red" ? "#D1191F" : "#B8860B";
+    g.lineWidth = 2; g.lineJoin = "round";
+    g.beginPath();
+    line.forEach(([d, m], i) => i ? g.lineTo(X(d), Y(m)) : g.moveTo(X(d), Y(m)));
+    g.stroke();
+  }
+}
+
+function compsCard(){
+  const all = [];
+  for(const t of DATA.targets){
+    for(const r of rows(t.key, "sale")) all.push({...r, label: t.label, key: t.key});
+  }
+  all.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.price - a.price);
+  const items = all.slice(0, 14).map(r => `<li>
+      <span>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>`
+                     : esc(r.title)}
+        ${r.tag === "presale" ? '<span class="pill presale">presale</span>' : ""}</span>
+      <span><span class="cdate">${esc(r.date || "—")}</span>
+        <span class="cprice">${usd(r.price)}</span></span>
+    </li>`).join("");
+  return $(`<section class="label">
+    <h3 style="font-family:var(--data);font-size:10px;font-weight:400;
+      text-transform:uppercase;letter-spacing:.12em;color:var(--ink-soft);margin:0 0 4px;">
+      Recent sold comps — ${all.length} matching filter</h3>
+    <ul class="comps">${items || '<li class="muted">No comps match this filter.</li>'}</ul>
+  </section>`);
+}
+
+function render(){
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  const gen = new Date(DATA.generated_at);
+  const stamp = gen.toLocaleString("en-US",
+    {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"});
+  const totalSold = DATA.targets.reduce((a, t) =>
+    a + DATA.ebay[t.key].filter(r => r.kind === "sale").length, 0);
+
+  app.append($(`<section class="label">
+    <h1 class="brandline">Supreme<em>®</em><br>Analogue Pocket</h1>
+    <div class="barcode" role="presentation"></div>
+    <div class="meta">
+      <span>DROP <strong>20 AUG 2026</strong></span>
+      <span>UPDATED <strong>${esc(stamp)}</strong></span>
+      <span><strong>${totalSold}</strong> eBay comps</span>
+    </div>
+  </section>`));
+
+  const bar = $(`<section class="label">
+    <div class="filterbar">
+      <h3>Listing type</h3>
+      <div class="seg" role="group" aria-label="Filter eBay listings by type">
+        <button data-f="all">All</button>
+        <button data-f="in_hand">In hand</button>
+        <button data-f="presale">Presale</button>
+      </div>
+    </div>
+    <p class="filternote">Presale listings sell an order confirmation, not a console in
+      hand, and they clear at different prices. Filter to <b>in hand</b> to compare
+      against what you're actually holding. StockX figures are unaffected.</p>
+  </section>`);
+  bar.querySelectorAll("button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.f === FILTER));
+    b.addEventListener("click", () => { FILTER = b.dataset.f; render(); });
+  });
+  app.append(bar);
+
+  for(const t of DATA.targets) app.append(modelCard(t));
+  app.append(chartCard());
+  app.append(compsCard());
+
+  const bad = DATA.runs.filter(r => r.status !== "ok");
+  app.append($(`<section class="label">
+    <div class="health">
+      <b>Collector health</b><br>
+      Last ${DATA.runs.length} jobs ·
+      <span class="${bad.length ? "bad" : "ok"}">${DATA.runs.length - bad.length} ok,
+        ${bad.length} failed</span><br>
+      ${bad.length ? bad.slice(0, 3).map(r =>
+        `${esc(r.source)}: ${esc(r.detail.split("\n")[0].slice(0, 90))}`).join("<br>")
+        : "All sources reporting."}
+    </div>
+  </section>`));
+
+  app.append($(`<p class="footline">
+    StockX order book + eBay sold and active listings · collected every 3 hours<br>
+    Net figures assume ${Math.round(DATA.fees.stockx * 100)}% StockX and
+    ${(DATA.fees.ebay * 100).toFixed(2)}% eBay fees, before shipping
+  </p>`));
+
+  drawChart();
+}
+
+render();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawChart, 120); });
+</script>
